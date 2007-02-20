@@ -1,0 +1,155 @@
+#!/bin/sh
+##########################################################################
+# Title      :	googleanalytics - download Google Analytics data
+# Author     :	Jay Ridgeway <jayridge AT gmail.com>
+# Date       :	2006-02-20
+# Requires   :	curl
+# $Id: googleanalytics,v 1.1 2007/02/20 22:35:03 jayridgeway Exp jayridgeway $
+##########################################################################
+# Description
+#
+##########################################################################
+
+PN=`basename "$0"`			# program name
+VER=`echo '$Revision: 1.1 $' | cut -d' ' -f2`
+
+CURL='curl'
+
+Usage () {
+    echo "$PN - download Google Analytics data in csv, $VER (jayridge '07)
+usage: $PN -u user -p passwd -r report [-s start] [-e end] [-t type] 
+
+Where user is you@gmail.com, passwd is your google passwd, start is start date 
+of report in YYYYMMDD format, end is end date in YYYYMMDD format, report is the
+profile id of analytics account (visible as rid=<report> when viewing a report
+in GA and type is one of thefollowing:
+
+EXECUTIVE_OVERVIEW=2001
+CONVERSION_SUMMARY_1=2003
+CONVERSION_SUMMARY_2=2108
+MARKETING_SUMMARY_1=2004
+MARKETING_SUMMARY_2=2102
+CONTENT_SUMMARY_1=2005
+CONTENT_SUMMARY_2=2202
+SITE_OVERLAY_1=2007
+SITE_OVERLAY_2=2109
+SITE_OVERLAY_3=1312
+SITE_OVERLAY_4=1351
+MARKETER_OVERVIEW=2101
+CPC_PROGRAM_ANALYSIS_1=2103
+CPC_PROGRAM_ANALYSIS_2=1220
+CPC_VS_ORGANIC_CONVERSION_1=2104
+CPC_VS_ORGANIC_CONVERSION_2=1222
+OVERALL_KEYWORD_CONVERSION_1=2105
+OVERALL_KEYWORD_CONVERSION_2=1221
+KEYWORD_CONSIDERATIONS_1=2106
+KEYWORD_CONSIDERATIONS_2=1223
+CAMPAIGN_CONVERSION_1=2107
+CAMPAIGN_CONVERSION_2=1213
+DEFINED_FUNNEL_NAVIGATION_1=2110
+DEFINED_FUNNEL_NAVIGATION_2=2203
+DEFINED_FUNNEL_NAVIGATION_3=1318
+ENTRANCE_BOUNCE_RATES_1=2111
+ENTRANCE_BOUNCE_RATES_2=2204
+ENTRANCE_BOUNCE_RATES_3=1310
+WEBMASTER_OVERVIEW=2201
+GOAL_TRACKING_1=2205
+GOAL_TRACKING_2=1315
+CONTENT_BY_TITLES_1=2206
+CONTENT_BY_TITLES_2=1306
+BROWSER_VERSIONS_1=2207
+BROWSER_VERSIONS_2=1321
+PLATFORM_VERSIONS_1=2208
+PLATFORM_VERSIONS_2=1322
+BROWSER_AND_PLATFORM_COMBOS_1=2209
+BROWSER_AND_PLATFORM_COMBOS_2=1323
+SCREEN_RESOLUTIONS_1=2210
+SCREEN_RESOLUTIONS_2=1324
+SCREEN_COLORS_1=2211
+SCREEN_COLORS_2=1325
+LANGUAGES_1=2312
+LANGUAGES_2=1326
+JAVA_ENABLED_1=2213
+JAVA_ENABLED_2=1327
+FLASH_VERSION_1=2215
+FLASH_VERSION_2=1329
+CONNECTION_SPEED_1=2216
+CONNECTION_SPEED_2=1330
+HOSTNAMES_1=2217
+HOSTNAMES_2=1331
+DAILY_VISITORS=1201
+VISITS_AND_PAGEVIEW_TRACKING=1202
+GOAL_CONVERSION_TRACKING=1203
+ABSOLUTE_UNIQUE_VISITORS=1204
+VISITOR_LOYALTY=1205
+VISITOR_RECENCY=1206
+NEW_VS_RETURNING=1207
+REFERRING_SOURCE_=1208
+GEO_LOCATION=1209
+GEO_MAP_OVERLAY=1227
+NETWORK_LOCATION=1210
+LANGUAGE=1211
+USER-DEFINED=1212
+DOMAINS=1231
+SOURCE_CONVERSION=1214
+MEDIUM_CONVERSION=1215
+REFERRAL_CONVERSION=1216
+CAMPAIGN_ROI=1217
+SOURCE_ROI=1218
+MEDIUM_ROI=1219
+OVERALL_AD_A/B_TESTING=1301
+SOURCE_SPECIFIC_TESTING_=1302
+KEYWORD_SPECIFIC_TESTING=1303
+TOP_CONTENT=1304
+CONTENT_DRILLDOWN=1305
+DYNAMIC_CONTENT=1307
+DEPTH_OF_VISIT=1308
+LENGTH_OF_VISIT_=1309
+TOP_EXIT_POINTS=1311
+INITIAL_NAVIGATION=1313
+ALL_NAVIGATION=1314
+GOAL_CONVERSION=1316
+DEFINED_FUNNEL_ABANDONMENT=1317
+REVERSE_GOAL_PATH=1319
+GOAL_VERIFICATION=1320" >&2
+    exit 1
+}
+
+if [ $# -eq 0 ]; then
+    Usage
+fi
+
+Type=2001   ; # defaults to executive overview
+
+while [ $# -gt 0 ]
+do
+    case "$1" in
+	-u)	Email=$2;;
+	-p) Passwd=$2;;
+	-s) Start=$2;;
+	-r) Report=$2;;
+	-t) Type=$2;;
+	-e) End=$2;;
+	--)	shift; break;;
+	-h|-*)	break;;
+    esac
+    shift
+done
+
+if [ ! -n "$Email" ] || [ ! -n "$Passwd" ] || [ ! -n "$Report" ]
+then
+    Usage
+fi
+
+COOKIES=${TMPDIR:=/tmp}/cookies$$.tmp
+
+LOGINURL='https://www.google.com/accounts/ServiceLoginBoxAuth'
+POST="service=analytics&Email=${Email}&Passwd=${Passwd}&PersistentCookie=yes"
+${CURL} -s -c ${COOKIES} -d  ${POST} ${LOGINURL} > /dev/null
+
+REPORTURL="https://www.google.com/analytics/home/report"
+REPORTURL=${REPORTURL}"?rid=${Report}&vid=${Type}&bd=${Start}&ed=${End}"
+REPORTURL=${REPORTURL}"&ss=0&dcomp=0&xd=1&dow=0&dt=3&dtc=2&x=3"
+echo ${REPORTURL}
+${CURL} -s -b ${COOKIES} ${REPORTURL}
+rm ${COOKIES}
